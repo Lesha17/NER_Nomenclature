@@ -3,3 +3,7 @@
 .DS_Store
 
 nomenclature_env/
+
+*.xls
+*.xlsx
+*.txt
