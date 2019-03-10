@@ -1,8 +1,6 @@
-from math import sqrt
-
 import pandas as pd
 import numpy as np
-import skfuzzy
+from sklearn.neighbors import KNeighborsClassifier
 
 from nomenclature_parser.Match import *
 from nomenclature_parser.Word import *
@@ -75,13 +73,11 @@ def match(k, w1, w2):
     return Match(w1, w2, k, np.linalg.norm(w1.embed - w2.embed))
 
 
-def matches_with_common(w, common_embeds, k):
-    matches = []
-    for e in common_embeds:
-        delta = np.linalg.norm(e - w.embed)
-        m = Match(w, Word("common#" + k, e), k, delta)
-        matches.append(m)
-    return matches
+def match_with_common(w, common_classifier):
+    c = common_classifier.predict([w.embed])
+    closest_distances, indices = common_classifier.kneighbors([w.embed])
+    delta = np.mean(closest_distances) # TODO maybe replace with mse
+    return Match(w, Word('common#' + c[0], w.embed), c[0], delta)
 
 
 max_tuple_size = 2
@@ -104,6 +100,8 @@ def parse_nomenclature(split_patterns, dictionary):
 
     print("Creating common characteristics embeds")
     common_characteristics = {}
+    common_word2char = {}
+    common_words = []
     for index, item in nomenclature_characteristic.iterrows():
         itemCharacteristics = get_nomenclature_item_characteristics(item)
 
@@ -115,56 +113,12 @@ def parse_nomenclature(split_patterns, dictionary):
                     continue
                 itemWords = get_words(v, embedder, split_patterns)
                 common_characteristics[k] += itemWords
+                for w in itemWords:
+                    common_word2char[w.word] = k
+                    common_words.append(w)
 
-    avrg_fpc = 0
-    fpcs = []
-
-    c2ncl = {}
-
-    # Подбираем так, чтобы  был мин. fpc
-    # при этом смотрим на mse, если он и так > 90, то 1 кластера достаточно
-
-    c2ncl["Производитель/ Бренд"] = 4  # Done
-    c2ncl["Модель/ Партномер/ Название/ ГОСТ(Стандарт)"] = 2  # Done
-    c2ncl["Назначение/ Принадлженость"] = 50  # Done
-    c2ncl["Классификатор"] = 2  # Done
-    c2ncl["Тип/ Исполнение/ Конструкция/ Разновидность"] = 1  # Done
-    c2ncl["Материал\n(Выбор из списка)"] = 1  # Done
-    c2ncl["Цвет (Выбор из списка)"] = 10  # Done
-    c2ncl["Размеры"] = 2  # Done
-    c2ncl["Вес/Объем"] = 2  # Done
-    c2ncl["Физическая величина"] = 50  # Done
-    c2ncl["Доп признак:\n- Количество/Количество в упаковке"] = 4  # Done
-    c2ncl[ITEM_NAME] = 8  # Done
-
-    common_characteristics_clusters = {}
-
-    for k, c in common_characteristics.items():
-        vector_array = [w.embed for w in c]
-        vector_array = np.asarray(vector_array)
-        ncl = c2ncl[k]
-        char_cluster_centers, u, u0, d, jm, p, fpc = skfuzzy.cluster.cmeans(vector_array.T, ncl, 2, error=0.005,
-                                                                         maxiter=10000,
-                                                                         init=None)
-        common_characteristics_clusters[k] = []
-        for c in char_cluster_centers:
-            common_characteristics_clusters[k].append(c)
-
-        avrg_fpc += fpc
-        fpcs.append(fpc)
-
-    avrg_fpc = avrg_fpc / len(fpcs)
-
-    fpc_d = 0
-    for fpc in fpcs:
-        fpc_d += fpc ** 2
-    fpc_d = sqrt(fpc_d / len(fpcs))
-
-    def itemIsEmpty(word):
-        for sp in split_patterns:
-            if word.replace(sp, '') != '':
-                return False
-        return True
+    common_classifier = KNeighborsClassifier(n_neighbors=5)
+    common_classifier.fit([w.embed for w in common_words], [common_word2char[w.word] for w in common_words])
 
     def parse_nomenclature_item_characteristics(item, item_characteristics, logfile=None):
         parsed_characteristics = {}
@@ -173,10 +127,10 @@ def parse_nomenclature(split_patterns, dictionary):
 
         matches = []
         for w in item_words:
-            for k, charValues in item_characteristics.items():
-                common_matches = matches_with_common(w, common_characteristics_clusters[k], k)
-                matches += common_matches
+            common_match = match_with_common(w, common_classifier)
+            matches.append(common_match)
 
+            for k, charValues in item_characteristics.items():
                 for charValue in charValues:
                     charWords = get_words(charValue, embedder, split_patterns)
                     for charWord in charWords:

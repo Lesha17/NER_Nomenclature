@@ -19,7 +19,7 @@ class Embedder:
         #normalizer = Normalizer()
         normalizer = StandardScaler(with_mean=False)
         # normalizer = RobustScaler(with_centering=True)
-        #transformer = TruncatedSVD(n_components = embed_dim)
+        #transformer = TruncatedSVD(n_components = embed_dim) # TODO: Tfidf + SnandartScaler + TruncatedSVD дают неплохой результат вместе s knn
         # transformer = PCA(n_components = embed_dim, whiten=True)
         transformer = TSNE(random_state=43, n_components=embed_dim)
 
