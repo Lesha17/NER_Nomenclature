@@ -17,8 +17,16 @@ def create_word_dictionary(nomenclature, nomenclature_patterns, split_pattern):
             dictionary = dictionary.union(set(split_string(item[column], split_pattern)))
 
     return dictionary
-#
-#
-# with open('output2.txt', 'w') as f:
-#     for dictinary_item in dictionary:
-#         f.write("%s\n" % dictinary_item)
+
+def save_dict(dict, file):
+    f = open(file, "w")
+    for w in dict:
+        f.write(w + '\n')
+    f.close()
+
+def load_dict(file):
+    f = open(file)
+    lines = f.readlines()
+    f.close()
+    return [l.replace('\n', '') for l in lines]
+
