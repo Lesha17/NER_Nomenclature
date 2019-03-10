@@ -99,6 +99,7 @@ def get_words(line, embedder, split_patterns):
 
 def parse_nomenclature(split_patterns, dictionary):
     embed_dim = 2
+
     embedder = Embedder(dictionary, embed_dim)
 
     print("Creating common characteristics embeds")
@@ -159,8 +160,6 @@ def parse_nomenclature(split_patterns, dictionary):
         fpc_d += fpc ** 2
     fpc_d = sqrt(fpc_d / len(fpcs))
 
-    MAX_DELTA = 0.4
-
     def itemIsEmpty(word):
         for sp in split_patterns:
             if word.replace(sp, '') != '':
@@ -185,7 +184,7 @@ def parse_nomenclature(split_patterns, dictionary):
                         matches.append(m)
 
         matches.sort(key=lambda x: x.delta)
-        matches = [m for m in matches if m.delta <= MAX_DELTA]
+        matches = [m for m in matches if m.delta <= embedder.MAX_DELTA]
 
         if logfile:
             logfile.write("Matches for {}: {}\n".format(item, [str(m) for m in matches]))
@@ -195,7 +194,7 @@ def parse_nomenclature(split_patterns, dictionary):
         while len(matches) > i and len(words) > 0:
             m = matches[i]
             i += 1
-            if m.delta > MAX_DELTA:
+            if m.delta > embedder.MAX_DELTA:
                 break
 
             matchWord = m.w1.word

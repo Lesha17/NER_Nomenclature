@@ -19,14 +19,17 @@ class Embedder:
         #normalizer = Normalizer()
         normalizer = StandardScaler(with_mean=False)
         # normalizer = RobustScaler(with_centering=True)
-        transformer = TruncatedSVD(n_components = embed_dim)
-        # transformer = PCA(n_components = n_components, whiten=True)
-        #transformer = TSNE(random_state=43, n_components=n_components)
+        #transformer = TruncatedSVD(n_components = embed_dim)
+        # transformer = PCA(n_components = embed_dim, whiten=True)
+        transformer = TSNE(random_state=43, n_components=embed_dim)
 
+        self.MAX_DELTA = 20
         self.pipeline = make_pipeline(vectorizer,
                                  to_dense,
                                  normalizer,
                                  transformer)
+        print("Fitting embeds: {}".format(self.pipeline))
+
         self.embeds_list = self.pipeline.fit_transform(dictionary)
 
         self.word2embed = {}
