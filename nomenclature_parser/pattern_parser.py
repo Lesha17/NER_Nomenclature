@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import math
 from sklearn.neighbors import KNeighborsClassifier
 
 from nomenclature_parser.Match import *
@@ -76,7 +77,9 @@ def match(k, w1, w2):
 def match_with_common(w, common_classifier):
     c = common_classifier.predict([w.embed])
     closest_distances, indices = common_classifier.kneighbors([w.embed])
-    delta = np.mean(closest_distances) # TODO maybe replace with mse
+    p = common_classifier.predict_proba([w.embed])
+    mean_sq_dist = math.sqrt(np.mean(np.square(closest_distances))) # TODO mean may be better
+    delta = mean_sq_dist / (np.max(p[0]) ** 2)
     return Match(w, Word('common#' + c[0], w.embed), c[0], delta)
 
 
