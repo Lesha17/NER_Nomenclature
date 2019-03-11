@@ -52,9 +52,9 @@ def get_nomenclature_item_characteristics(item):
 
             # Matches strings "из списка", "список"
             if "спис" in ic.lower():
-                vals = ic.split("\n")[1:]
+                vals = [val for val in ic.lower().split("\n") if "спис" not in val and "прим" not in val]
             elif "ручной ввод" in ic.lower():
-                vals = ic.split("\n")[2:]  # "ручной ввод"
+                vals = ic.split("\n")[2:]  # "ручной ввод"ладн
             else:
                 vals = [item[characteristic]]
             # TODO: find the way to parse Модель/ Партномер/ Название/ ГОСТ(Стандарт) and Производитель/ Бренд columns
