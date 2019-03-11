@@ -3,6 +3,7 @@
 .DS_Store
 
 nomenclature_env/
+__pycache__/
 
 *.xls
 *.xlsx
