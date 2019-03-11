@@ -85,43 +85,50 @@ def match_with_common(w, common_classifier):
 
 max_tuple_size = 2
 
-def get_words(line, embedder, split_patterns):
+def split_to_words(line, split_patterns):
     words_str = set()
     for split_pattern in split_patterns:
         words_str = words_str.union(split_string(line, split_pattern))
     if '' in words_str:
         words_str.remove('')
 
+    return words_str
+
+def get_words(line, embedder, split_patterns):
+    words_str = split_to_words(line, split_patterns)
+
     words = [Word(w, embedder.embed(w)) for w in words_str]
     return words
 
-
-def parse_nomenclature(split_patterns, dictionary):
-    embed_dim = 2
-
-    embedder = Embedder(dictionary, embed_dim)
-
+def create_common_dataset(split_patterns):
     print("Creating common characteristics embeds")
-    common_characteristics = {}
+
     common_word2char = {}
     common_words = []
     for index, item in nomenclature_characteristic.iterrows():
         itemCharacteristics = get_nomenclature_item_characteristics(item)
 
         for k, vals in itemCharacteristics.items():
-            if k not in common_characteristics:
-                common_characteristics[k] = []
             for v in vals:
                 if v in EMPTY:
                     continue
-                itemWords = get_words(v, embedder, split_patterns)
-                common_characteristics[k] += itemWords
+                itemWords = split_to_words(v, split_patterns)
                 for w in itemWords:
-                    common_word2char[w.word] = k
+                    common_word2char[w] = k
                     common_words.append(w)
 
+    dataset = [[w, common_word2char[w]] for w in common_words]
+    return dataset
+
+def parse_nomenclature(split_patterns, dictionary):
+    embed_dim = 2
+
+    embedder = Embedder(dictionary, embed_dim)
+
+    common_dataset = create_common_dataset(split_patterns)
+
     common_classifier = KNeighborsClassifier(n_neighbors=5)
-    common_classifier.fit([w.embed for w in common_words], [common_word2char[w.word] for w in common_words])
+    common_classifier.fit([embedder.embed(w[0]) for w in common_dataset], [w[1] for w in common_dataset])
 
     def parse_nomenclature_item_characteristics(item, item_characteristics, logfile=None):
         parsed_characteristics = {}
