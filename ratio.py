@@ -32,16 +32,11 @@ def evaluate_accuracy_ratio(parsed_nomenclature_file, test_nomenclature_file):
                         "INPUT:part"]
                     if not test_cells.empty:
                         parsed_values = list(filter(None, re.split(r' |\n|;|\\(|\\)', row[column])))
-                        for parsed_value in parsed_values:
-                            print(parsed_value)
-                        print("---")
 
                         test_values = []
                         for test_cell in test_cells:
                             if test_cell != "" and test_cell is not None:
                                 test_values += list(filter(None, re.split(r' |\n|;|\\(|\\)', str(test_cell))))
-                        for test_value in test_values:
-                            print(test_value)
 
                         total_count += 1
                         for parsed_value in parsed_values:
@@ -49,8 +44,5 @@ def evaluate_accuracy_ratio(parsed_nomenclature_file, test_nomenclature_file):
                                    test_value is not None and test_value != ""):
                                 parsed_count += 1
                                 break
-                    else:
-                        print("empty")
-                    print("---------------")
 
     return parsed_count / total_count

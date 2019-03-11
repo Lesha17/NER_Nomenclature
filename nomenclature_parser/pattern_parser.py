@@ -49,17 +49,7 @@ def get_nomenclature_item_characteristics(item):
     for characteristic in CHARACTERISTICS:
         if item[characteristic] not in EMPTY and not pd.isna(item[characteristic]):
             ic = str(item[characteristic])
-            vals = []
-
-            # Matches strings "из списка", "список"
-            if "спис" in ic.lower():
-                vals = [val for val in ic.lower().split("\n") if "спис" not in val and "прим" not in val]
-            elif "ручной ввод" in ic.lower():
-                vals = ic.split("\n")[2:]  # "ручной ввод"ладн
-            else:
-                vals = [item[characteristic]]
-            # TODO: find the way to parse Модель/ Партномер/ Название/ ГОСТ(Стандарт) and Производитель/ Бренд columns
-
+            vals = [val for val in ic.split("\n") if "спис" not in val.lower() and "прим" not in val.lower()]
             item_characteristics[characteristic] = vals
         if ADDITIONAL in item_characteristics:
             item_characteristics[ADDITIONAL].append(item['БЕИ'])

@@ -9,19 +9,8 @@ nomenclature = pd.read_excel("nomenclature.xlsx")
 nomenclature = nomenclature.append(pd.read_excel("nomenclature2.xlsx"), ignore_index=True)
 nomenclature_patterns = pd.read_excel("nomenclature_patterns.xlsx")
 
-main_split_pattern = ' |\n|;|,|\\(|\\)'
-other_split_patters = [
-    ' |-|\n|;|,|\\(|\\)',  # with '-'
-    ' |\n|;|,',  # without braces
-    ' |-|\n|;|,',  # with '-' without braces
-    ' |\n|;|\\(|\\)',  # without comma
-    ' |-|\n|;|\\(|\\)',  # with '-' without comma
-    ' |\n|;',  # without braces without comma
-    ' |-|\n|;'  # with '-' without braces without comma
-]
-
-split_patterns = other_split_patters
-split_patterns.append(main_split_pattern)
+main_split_pattern = ' |\n|;|\\(|\\)'
+split_patterns = [main_split_pattern]
 
 dictFile = 'dict.txt'
 
