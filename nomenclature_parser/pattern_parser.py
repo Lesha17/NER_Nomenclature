@@ -78,12 +78,13 @@ def match_with_common(w, common_classifier):
     c = common_classifier.predict([w.embed])
     closest_distances, indices = common_classifier.kneighbors([w.embed])
     p = common_classifier.predict_proba([w.embed])
-    mean_sq_dist = math.sqrt(np.mean(np.square(closest_distances))) # TODO mean may be better
+    mean_sq_dist = math.sqrt(np.mean(np.square(closest_distances)))  # TODO mean may be better
     delta = mean_sq_dist / (np.max(p[0]) ** 2)
     return Match(w, Word('common#' + c[0], w.embed), c[0], delta)
 
 
 max_tuple_size = 2
+
 
 def split_to_words(line, split_patterns):
     words_str = set()
@@ -94,11 +95,13 @@ def split_to_words(line, split_patterns):
 
     return words_str
 
+
 def get_words(line, embedder, split_patterns):
     words_str = split_to_words(line, split_patterns)
 
     words = [Word(w, embedder.embed(w)) for w in words_str]
     return words
+
 
 def create_common_dataset(split_patterns):
     print("Creating common characteristics embeds")
@@ -119,6 +122,7 @@ def create_common_dataset(split_patterns):
 
     dataset = [[w, common_word2char[w]] for w in common_words]
     return dataset
+
 
 def parse_nomenclature(split_patterns, dictionary):
     embed_dim = 2
