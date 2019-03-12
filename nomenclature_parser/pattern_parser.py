@@ -15,20 +15,33 @@ nomenclature_patterns = pd.read_excel("nomenclature_patterns.xlsx")
 nomenclature_characteristic = nomenclature.join(nomenclature_patterns.set_index("Наименование целевого ОЗМ"),
                                                 on="Наименование целевого ОЗМ")
 
+ITEM_NAME = "Выделенное имя"
+PRODUCER = "Производитель/ Бренд"
+MODEL = "Модель/ Партномер/ Название/ ГОСТ(Стандарт)"
+DESTINATION = "Назначение/ Принадлженость"
+CLASSIFICATOR = "Классификатор"
+TYPE = "Тип/ Исполнение/ Конструкция/ Разновидность"
+MATERIAL = "Материал\n(Выбор из списка)"
+COLOR = "Цвет (Выбор из списка)"
+SIZE = "Размеры"
+WEIGHT = "Вес/Объем"
+PHYSICS = "Физическая величина"
+ADDITIONAL = "Доп признак:\n- Количество/Количество в упаковке"
+
 CHARACTERISTICS = [
     # "БЕИ",
     # "АЕИ",
-    "Производитель/ Бренд",
-    "Модель/ Партномер/ Название/ ГОСТ(Стандарт)",
-    "Назначение/ Принадлженость",
-    "Классификатор",
-    "Тип/ Исполнение/ Конструкция/ Разновидность",
-    "Материал\n(Выбор из списка)",
-    "Цвет (Выбор из списка)",
-    "Размеры",
-    "Вес/Объем",
-    "Физическая величина",
-    "Доп признак:\n- Количество/Количество в упаковке"
+    PRODUCER,
+    MODEL,
+    DESTINATION,
+    CLASSIFICATOR,
+    TYPE,
+    MATERIAL,
+    COLOR,
+    SIZE,
+    WEIGHT,
+    PHYSICS,
+    ADDITIONAL
 ]
 
 DESCRIPTIONS = [
@@ -39,8 +52,19 @@ DESCRIPTIONS = [
 ]
 
 EMPTY = ["-", "", None]
-ADDITIONAL = 'Доп признак:\n- Количество/Количество в упаковке'
-ITEM_NAME = 'Выделенное имя'
+
+CHAR_REPLACEMENTS = {}
+CHAR_REPLACEMENTS[PRODUCER] = [MODEL]
+CHAR_REPLACEMENTS[MODEL] = [CLASSIFICATOR, TYPE, SIZE, PRODUCER]
+CHAR_REPLACEMENTS[DESTINATION] = [TYPE, MODEL, ITEM_NAME]
+CHAR_REPLACEMENTS[CLASSIFICATOR] = [MODEL, TYPE, DESTINATION, SIZE, PRODUCER, MATERIAL, COLOR]
+CHAR_REPLACEMENTS[TYPE] = [DESTINATION, SIZE, MATERIAL, COLOR, MODEL, CLASSIFICATOR]
+CHAR_REPLACEMENTS[MATERIAL] = [TYPE, COLOR, MODEL, DESTINATION]
+CHAR_REPLACEMENTS[COLOR] = [TYPE, MATERIAL, MODEL, CLASSIFICATOR, SIZE]
+CHAR_REPLACEMENTS[SIZE] = [WEIGHT, PHYSICS, TYPE, MODEL, CLASSIFICATOR, ADDITIONAL]
+CHAR_REPLACEMENTS[WEIGHT] = [SIZE, PHYSICS, ADDITIONAL]
+CHAR_REPLACEMENTS[PHYSICS] = [WEIGHT, SIZE, MODEL, TYPE, CLASSIFICATOR, ADDITIONAL]
+CHAR_REPLACEMENTS[ADDITIONAL] = [WEIGHT, SIZE, PHYSICS, CLASSIFICATOR, MODEL, TYPE]
 
 
 def get_nomenclature_item_characteristics(item):
@@ -64,13 +88,24 @@ def match(k, w1, w2):
     return Match(w1, w2, k, np.linalg.norm(w1.embed - w2.embed))
 
 
-def match_with_common(w, common_classifier):
+def match_with_common(w, common_classifier, allowed_chars, char_replaces):
     c = common_classifier.predict([w.embed])
+    predicted_char = c[0]
+
+    allowed_char = None
+    if predicted_char in allowed_chars:
+        allowed_char = predicted_char
+    else:
+        for char_replace in char_replaces[predicted_char]:
+            if char_replace in allowed_chars:
+                allowed_char = char_replace
+                break
+
     closest_distances, indices = common_classifier.kneighbors([w.embed])
     p = common_classifier.predict_proba([w.embed])
-    mean_sq_dist = math.sqrt(np.mean(np.square(closest_distances)))  # TODO mean may be better
+    mean_sq_dist = math.sqrt(np.mean(np.square(closest_distances[0])))  # TODO mean may be better
     delta = mean_sq_dist / (np.max(p[0]) ** 2)
-    return Match(w, Word('common#' + c[0], w.embed), c[0], delta)
+    return Match(w, Word('common#{}->{}'.format(predicted_char, allowed_char), w.embed), allowed_char, delta)
 
 
 max_tuple_size = 2
@@ -109,6 +144,7 @@ def create_common_dataset(split_patterns):
                 for w in itemWords:
                     common_word2char[w] = k
                     common_words.append(w)
+    common_words = set(common_words)
 
     dataset = [[w, common_word2char[w]] for w in common_words]
     return dataset
@@ -131,8 +167,9 @@ def parse_nomenclature(split_patterns, dictionary):
 
         matches = []
         for w in item_words:
-            common_match = match_with_common(w, common_classifier)
-            matches.append(common_match)
+            common_match = match_with_common(w, common_classifier, item_characteristics, CHAR_REPLACEMENTS)
+            if common_match.key:
+                matches.append(common_match)
 
             for k, charValues in item_characteristics.items():
                 for charValue in charValues:
