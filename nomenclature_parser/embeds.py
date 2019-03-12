@@ -22,8 +22,9 @@ class Embedder:
         normalizer = StandardScaler(with_mean=False)
         # normalizer = RobustScaler(with_centering=True)
         comp_reducer = TruncatedSVD(n_components=self.reduce_to)
+        transformer = TruncatedSVD(n_components=embed_dim)
         # transformer = PCA(n_components = embed_dim, whiten=True)
-        transformer = TSNE(random_state=43, n_components=embed_dim)
+        #transformer = TSNE(random_state=43, n_components=embed_dim)
 
         self.MAX_DELTA = 20
         self.pipeline = make_pipeline(vectorizer,
