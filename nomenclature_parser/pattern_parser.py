@@ -73,7 +73,7 @@ def get_nomenclature_item_characteristics(item):
     for characteristic in CHARACTERISTICS:
         if item[characteristic] not in EMPTY and not pd.isna(item[characteristic]):
             ic = str(item[characteristic])
-            vals = [val for val in ic.split("\n") if "спис" not in val.lower() and "прим" not in val.lower()]
+            vals = [val for val in ic.split("\n") if "спис" not in val.lower() and "прим" not in val.lower() and "ручн" not in val.lower()]
             item_characteristics[characteristic] = vals
         if ADDITIONAL in item_characteristics:
             item_characteristics[ADDITIONAL].append(item['БЕИ'])
