@@ -13,13 +13,15 @@ class Embedder:
     def __init__(self, dictionary, embed_dim):
         self.dictionary = dictionary
 
+        self.reduce_to = 40
+
         #vectorizer = CountVectorizer(input='content', analyzer='char_wb')
         vectorizer = TfidfVectorizer(input='content', analyzer='char_wb')
         to_dense = FunctionTransformer(lambda x: x.todense(), accept_sparse=True)
         #normalizer = Normalizer()
         normalizer = StandardScaler(with_mean=False)
         # normalizer = RobustScaler(with_centering=True)
-        #transformer = TruncatedSVD(n_components = embed_dim) # TODO: Tfidf + SnandartScaler + TruncatedSVD дают неплохой результат вместе s knn
+        comp_reducer = TruncatedSVD(n_components=self.reduce_to)
         # transformer = PCA(n_components = embed_dim, whiten=True)
         transformer = TSNE(random_state=43, n_components=embed_dim)
 
@@ -27,6 +29,7 @@ class Embedder:
         self.pipeline = make_pipeline(vectorizer,
                                  to_dense,
                                  normalizer,
+                                 comp_reducer,
                                  transformer)
         print("Fitting embeds: {}".format(self.pipeline))
 
