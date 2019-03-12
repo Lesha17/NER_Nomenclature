@@ -3,6 +3,11 @@ import os
 
 from nomenclature_parser.machine_learning_dictionary import create_word_dictionary, save_dict, load_dict
 from nomenclature_parser.pattern_parser import parse_nomenclature
+from ui.NomenclatureParserUI import NomenclatureParserUI
+
+nomenclature_parser_ui = NomenclatureParserUI()
+nomenclature_parser_ui.mainloop()
+print("here 2")
 
 split_pattern = ' |\n|;|,|\\(|\\)'
 nomenclature = pd.read_excel("nomenclature.xlsx")
