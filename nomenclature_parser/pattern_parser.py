@@ -103,7 +103,7 @@ def match_with_common(w, common_classifier, allowed_chars, char_replaces):
 
     closest_distances, indices = common_classifier.kneighbors([w.embed])
     p = common_classifier.predict_proba([w.embed])
-    mean_sq_dist = math.sqrt(np.mean(np.square(closest_distances))) # TODO mean may be better
+    mean_sq_dist = math.sqrt(np.mean(np.square(closest_distances[0]))) # TODO mean may be better
     delta = mean_sq_dist / (np.max(p[0]) ** 2)
     return Match(w, Word('common#{}->{}'.format(predicted_char, allowed_char), w.embed), allowed_char, delta)
 
@@ -141,6 +141,7 @@ def create_common_dataset(split_patterns):
                 for w in itemWords:
                     common_word2char[w] = k
                     common_words.append(w)
+    common_words = set(common_words)
 
     dataset = [[w, common_word2char[w]] for w in common_words]
     return dataset
