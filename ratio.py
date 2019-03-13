@@ -1,14 +1,35 @@
 import re
 
 import pandas as pd
+from nomenclature_parser.pattern_parser import get_nomenclature_item_characteristics
 
-def key(name, word):
-    return "{}\t{}".format(name, word)
+ITEM_NAME = "name"
+PRODUCER = "producer"
+MODEL = "model"
+DESTINATION = "destination"
+TYPE = "type"
+MATERIAL = "material"
+COLOR = "color"
+SIZE = "size"
+WEIGHT = "weight"
+PHYSICS = "physics"
+ADDITIONAL = "packaging"
+OTHER = "other"
 
-def evaluate_accuracy_ratio2(parsed_nomenclature_file, test_nomenclature_file):
-    parsed_nomenclature = pd.read_excel(parsed_nomenclature_file).dropna(how="all").fillna("")
-    test_nomenclature = pd.read_excel(test_nomenclature_file).dropna(how="all").fillna("").drop_duplicates()
-    characteristics = {
+CHAR_REPLACEMENTS = {}
+CHAR_REPLACEMENTS[PRODUCER] = [MODEL]
+CHAR_REPLACEMENTS[MODEL] = [TYPE, DESTINATION, SIZE, PRODUCER, MATERIAL, COLOR]
+CHAR_REPLACEMENTS[DESTINATION] = [TYPE, MODEL, ITEM_NAME]
+CHAR_REPLACEMENTS[TYPE] = [DESTINATION, SIZE, MATERIAL, COLOR, MODEL]
+CHAR_REPLACEMENTS[MATERIAL] = [TYPE, COLOR, MODEL, DESTINATION]
+CHAR_REPLACEMENTS[COLOR] = [TYPE, MATERIAL, MODEL, SIZE]
+CHAR_REPLACEMENTS[SIZE] = [WEIGHT, PHYSICS, TYPE, MODEL, ADDITIONAL]
+CHAR_REPLACEMENTS[WEIGHT] = [SIZE, PHYSICS, ADDITIONAL]
+CHAR_REPLACEMENTS[PHYSICS] = [WEIGHT, SIZE, MODEL, TYPE, ADDITIONAL]
+CHAR_REPLACEMENTS[ADDITIONAL] = [WEIGHT, SIZE, PHYSICS, MODEL, TYPE]
+CHAR_REPLACEMENTS[OTHER] = []
+
+characteristics = {
         "Выделенное имя": "name",
         "Производитель/ Бренд": "producer",
         "Модель/ Партномер/ Название/ ГОСТ(Стандарт)": "model",
@@ -23,6 +44,32 @@ def evaluate_accuracy_ratio2(parsed_nomenclature_file, test_nomenclature_file):
         "Доп признак:\n- Количество/Количество в упаковке": "packaging"
     }
 
+def find_char_replacement(char, item):
+    item_characteristics = get_nomenclature_item_characteristics(item)
+    normalized_chars = [characteristics[k] for k in item_characteristics]
+    if char in normalized_chars:
+        return char
+    else:
+        for another in CHAR_REPLACEMENTS[char]:
+            if another in normalized_chars:
+                return another
+
+    return None
+
+def key(name, word):
+    return "{}\t{}".format(name, word)
+
+def evaluate_accuracy_ratio2(parsed_nomenclature_file, test_nomenclature_file):
+    parsed_nomenclature = pd.read_excel(parsed_nomenclature_file).dropna(how="all").fillna("")
+    test_nomenclature = pd.read_excel(test_nomenclature_file).dropna(how="all").fillna("").drop_duplicates()
+
+    nomenclature = pd.read_excel("nomenclature.xlsx")
+    nomenclature_patterns = pd.read_excel("nomenclature_patterns.xlsx")
+
+    # Join nomenclature dataframe and nomenclature patterns dataframe on column "Наименование целевого ОЗМ"
+    nomenclature_characteristic = nomenclature.join(nomenclature_patterns.set_index("Наименование целевого ОЗМ"),
+                                                    on="Наименование целевого ОЗМ")
+
     labeled_names = []
     pair_to_result = {}
 
@@ -33,7 +80,13 @@ def evaluate_accuracy_ratio2(parsed_nomenclature_file, test_nomenclature_file):
             if k not in pair_to_result:
                 pair_to_result[k] = []
 
-            pair_to_result[k].append(row['OUTPUT:characteristic'])
+            result_char = row['OUTPUT:characteristic']
+            s = nomenclature_characteristic.loc[
+                nomenclature_characteristic['Наименование ТМЦ'] == row['INPUT:text']]
+            if not s.empty:
+                pair_to_result[k].append(find_char_replacement(result_char, s.iloc[0]))
+            else:
+                pair_to_result[k].append(result_char)
 
     labeled_names = set(labeled_names)
     print("Number of labeled items: {}".format(len(labeled_names)))
