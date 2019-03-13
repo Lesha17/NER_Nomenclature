@@ -67,6 +67,7 @@ def evaluate_accuracy_ratio(parsed_nomenclature_file, test_nomenclature_file):
     parsed_nomenclature = pd.read_excel(parsed_nomenclature_file).dropna(how="all").fillna("")
     test_nomenclature = pd.read_excel(test_nomenclature_file).dropna(how="all").fillna("").drop_duplicates()
     characteristics = {
+        "Выделенное имя": "name",
         "Производитель/ Бренд": "producer",
         "Модель/ Партномер/ Название/ ГОСТ(Стандарт)": "model",
         "Назначение/ Принадлженость": "destination",
